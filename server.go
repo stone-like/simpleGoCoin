@@ -31,6 +31,7 @@ func NewServer(config *Config, cm *ConnectionManager) *Server {
 
 func (s *Server) Run() {
 	s.state = STATE_STANDBY
+	s.cm.SetHandleBlockChainFn(s.handleBlockChain)
 	s.cm.Run()
 }
 
@@ -47,4 +48,21 @@ func (s *Server) ShutDown() {
 
 func (s *Server) GetState() State {
 	return s.state
+}
+
+func (s *Server) handleBlockChain(addr string, mType MessageType, payload Payload) {
+	switch mType {
+	case MSG_NEW_TRANSACTION:
+	case MSG_NEW_BLOCK:
+	case RSP_FULL_CHAIN:
+	case MSG_ENHANCED:
+		{
+			ep := payload.(*EnhancedPayload)
+			s.logger.Printf("enhancedMessage Received... %s\n", ep.Content)
+			return
+		}
+	default:
+		s.logger.Println(ErrorUnknownMessage)
+		return
+	}
 }

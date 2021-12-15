@@ -301,12 +301,31 @@ func (e *EdgeConnectionManager) handleMessage(conn net.Conn) {
 
 func (e *EdgeConnectionManager) handleCoreList(payload []byte) {
 	e.logger.Println("Refresh Core Node List")
-	mp, err := e.messageManager.GetPayload(payload)
+	ip, err := e.messageManager.GetCoreListPayload(payload)
 	if err != nil {
 		e.logger.Println(err)
 		return
 	}
 
-	e.logger.Printf("latest Core Node List is: %v\n", mp.CoreNodeList)
-	e.coreNodeList.Overwrite(mp.CoreNodeList)
+	coreListPayload := ip.(*CoreListPayload)
+
+	e.logger.Printf("latest Core Node List is: %v\n", coreListPayload.List)
+	e.coreNodeList.Overwrite(coreListPayload.List)
+}
+
+func (e *EdgeConnectionManager) SendMessage(msgType MessageType, content string) {
+	payload := e.messageManager.CreateEnhancedPayload(content)
+	bytes, err := payload.Marshal()
+	if err != nil {
+		e.logger.Println(err)
+		return
+	}
+
+	msg, err := e.messageManager.Create(bytes, e.port, msgType)
+	if err != nil {
+		e.logger.Println(err)
+		return
+	}
+	e.Send(msg, e.currentTargetCore)
+
 }

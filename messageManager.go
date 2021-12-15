@@ -9,19 +9,31 @@ func NewMessageManeger() *MessageManager {
 	return &MessageManager{}
 }
 
-func (mm *MessageManager) CreatePayload(coreNodeList map[string]struct{}) *MessagePayload {
-	return &MessagePayload{
-		CoreNodeList: coreNodeList,
+func (mm *MessageManager) CreateCoreListPayload(coreNodeList map[string]struct{}) Payload {
+	return &CoreListPayload{
+		List: coreNodeList,
 	}
 }
 
-func (mm *MessageManager) GetPayload(payload []byte) (*MessagePayload, error) {
-	var p MessagePayload
-	err := json.Unmarshal(payload, &p)
-	if err != nil {
-		return nil, err
+func (mm *MessageManager) GetCoreListPayload(payload []byte) (Payload, error) {
+	m := &CoreListPayload{}
+	return m.Unmarshal(payload)
+}
+
+func (mm *MessageManager) CreateEnhancedPayload(content string) Payload {
+	return &EnhancedPayload{
+		Content: content,
 	}
-	return &p, nil
+}
+
+func (mm *MessageManager) GetBlockChainPayload(payload []byte, msgType MessageType) (Payload, error) {
+	switch msgType {
+	case MSG_ENHANCED:
+		m := &EnhancedPayload{}
+		return m.Unmarshal(payload)
+	default:
+		return nil, ErrorUnknownMessage
+	}
 }
 
 func (mm *MessageManager) CreateWithoutPayload(port string, message MessageType) ([]byte, error) {
@@ -53,9 +65,10 @@ func (mm *MessageManager) Parse(content []byte) (string, []byte, MessageType, er
 	}
 
 	switch msg.MessageType {
-	case MSG_CORE_LIST:
+	case MSG_CORE_LIST, MSG_NEW_TRANSACTION, MSG_NEW_BLOCK, RSP_FULL_CHAIN, MSG_ENHANCED:
 		return msg.Port, msg.Payload, msg.MessageType, nil
 	default:
 		return msg.Port, []byte{}, msg.MessageType, nil
 	}
+
 }

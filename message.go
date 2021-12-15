@@ -1,6 +1,9 @@
 package simplegocoin
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type MessageType int
 
@@ -23,6 +26,11 @@ const (
 	MSG_PING
 	MSG_ADD_AS_EDGE
 	MSG_REMOVE_EDGE
+	MSG_NEW_TRANSACTION
+	MSG_NEW_BLOCK
+	MSG_REQUEST_FULL_CHAIN
+	RSP_FULL_CHAIN
+	MSG_ENHANCED
 )
 
 type Message struct {
@@ -33,8 +41,33 @@ type Message struct {
 	Payload     []byte
 }
 
-type MessagePayload struct {
-	CoreNodeList map[string]struct{}
+type Payload interface {
+	Unmarshal(content []byte) (Payload, error)
+	Marshal() ([]byte, error)
+}
+
+type CoreListPayload struct {
+	List map[string]struct{}
+}
+
+func (c *CoreListPayload) Unmarshal(content []byte) (Payload, error) {
+	err := json.Unmarshal(content, c)
+	return c, err
+}
+func (c *CoreListPayload) Marshal() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+type EnhancedPayload struct {
+	Content string
+}
+
+func (e *EnhancedPayload) Unmarshal(content []byte) (Payload, error) {
+	err := json.Unmarshal(content, e)
+	return e, err
+}
+func (e *EnhancedPayload) Marshal() ([]byte, error) {
+	return json.Marshal(e)
 }
 
 func (m Message) Validate() error {

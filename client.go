@@ -48,3 +48,7 @@ func (c *Client) ShutDown() {
 func (c *Client) GetState() ClientState {
 	return c.state
 }
+
+func (c *Client) SendMessage(content string) {
+	c.cm.SendMessage(MSG_ENHANCED, content)
+}

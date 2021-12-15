@@ -1,7 +1,6 @@
 package simplegocoin
 
 import (
-	"encoding/json"
 	"log"
 	"net"
 	"strings"
@@ -10,19 +9,20 @@ import (
 )
 
 type ConnectionManager struct {
-	host           string
-	port           string
-	coreNodeList   *CoreNodeList
-	edgeNodeList   *EdgeNodeList
-	messageManager *MessageManager
-	shutdownCh     chan struct{}
-	stopCh         chan struct{}
-	streamCh       chan net.Conn
-	TCPtimeout     time.Duration
-	PINGinterval   time.Duration
-	logger         *log.Logger
-	listener       net.Listener
-	tickers        []*time.Ticker
+	host             string
+	port             string
+	coreNodeList     *CoreNodeList
+	edgeNodeList     *EdgeNodeList
+	messageManager   *MessageManager
+	shutdownCh       chan struct{}
+	stopCh           chan struct{}
+	streamCh         chan net.Conn
+	TCPtimeout       time.Duration
+	PINGinterval     time.Duration
+	logger           *log.Logger
+	listener         net.Listener
+	tickers          []*time.Ticker
+	handleBlockChain func(string, MessageType, Payload)
 }
 
 func NewConnectionManager(host, port string, TCPtimeout, PINGinterval time.Duration, logger *log.Logger) *ConnectionManager {
@@ -106,8 +106,8 @@ func (c *ConnectionManager) HeartBeat() {
 		c.coreNodeList.Remove(node)
 	}
 
-	payload := c.messageManager.CreatePayload(c.coreNodeList.CurrentNodes())
-	bytes, err := json.Marshal(payload)
+	payload := c.messageManager.CreateCoreListPayload(c.coreNodeList.CurrentNodes())
+	bytes, err := payload.Marshal()
 	if err != nil {
 		c.logger.Println(err)
 		return
@@ -318,6 +318,15 @@ func (c *ConnectionManager) handleMessage(conn net.Conn) {
 	case MSG_REMOVE_EDGE:
 		c.handleRemoveEdge(addr)
 		return
+	//ここからブロックチェーン絡み、serverに戻して処理
+	case MSG_NEW_TRANSACTION, MSG_NEW_BLOCK, RSP_FULL_CHAIN, MSG_ENHANCED:
+		payload, err := c.messageManager.GetBlockChainPayload(payload, msgType)
+		if err != nil {
+			c.logger.Println(err)
+			return
+		}
+		c.handleBlockChain(addr, msgType, payload)
+		return
 	default:
 		c.logger.Println(ErrorUnknownMessage)
 		return
@@ -325,11 +334,15 @@ func (c *ConnectionManager) handleMessage(conn net.Conn) {
 
 }
 
+func (c *ConnectionManager) SetHandleBlockChainFn(fn func(string, MessageType, Payload)) {
+	c.handleBlockChain = fn
+}
+
 func (c *ConnectionManager) handleAddEdge(addr string) {
 	c.edgeNodeList.Add(addr)
 	//登録したedgeに対してcoreNodeListを返す(Edge->CoreのPINGの際に繋がらなかったら別のCoreに繋ぎ変えるために必要)
-	payload := c.messageManager.CreatePayload(c.coreNodeList.CurrentNodes())
-	bytes, err := json.Marshal(payload)
+	payload := c.messageManager.CreateCoreListPayload(c.coreNodeList.CurrentNodes())
+	bytes, err := payload.Marshal()
 	if err != nil {
 		c.logger.Println(err)
 		return
@@ -350,8 +363,8 @@ func (c *ConnectionManager) handleRemoveEdge(addr string) {
 func (c *ConnectionManager) handleRemove(addr string) {
 	c.logger.Printf("Remove Request Received from %s\n", addr)
 	c.RemovePeer(addr)
-	payload := c.messageManager.CreatePayload(c.coreNodeList.CurrentNodes())
-	bytes, err := json.Marshal(payload)
+	payload := c.messageManager.CreateCoreListPayload(c.coreNodeList.CurrentNodes())
+	bytes, err := payload.Marshal()
 	if err != nil {
 		c.logger.Println(err)
 		return
@@ -368,8 +381,8 @@ func (c *ConnectionManager) handleRemove(addr string) {
 
 func (c *ConnectionManager) handleRequestCoreList(addr string) {
 	c.logger.Println("Core Node List was Requested")
-	payload := c.messageManager.CreatePayload(c.coreNodeList.CurrentNodes())
-	bytes, err := json.Marshal(payload)
+	payload := c.messageManager.CreateCoreListPayload(c.coreNodeList.CurrentNodes())
+	bytes, err := payload.Marshal()
 	if err != nil {
 		c.logger.Println(err)
 		return
@@ -385,22 +398,24 @@ func (c *ConnectionManager) handleRequestCoreList(addr string) {
 
 func (c *ConnectionManager) handleCoreList(payload []byte) {
 	c.logger.Println("Refresh Core Node List")
-	mp, err := c.messageManager.GetPayload(payload)
+	ip, err := c.messageManager.GetCoreListPayload(payload)
 	if err != nil {
 		c.logger.Println(err)
 		return
 	}
 
-	c.logger.Printf("latest Core Node List is: %v\n", mp.CoreNodeList)
-	c.coreNodeList.Overwrite(mp.CoreNodeList)
+	coreListPayload := ip.(*CoreListPayload)
+
+	c.logger.Printf("latest Core Node List is: %v\n", coreListPayload.List)
+	c.coreNodeList.Overwrite(coreListPayload.List)
 }
 
 func (c *ConnectionManager) handleAdd(addr string) {
 	c.logger.Println("Add Request Received")
 	c.AddPeer(addr)
 	//neighborに現在のcore_node_listを一斉送信
-	payload := c.messageManager.CreatePayload(c.coreNodeList.CurrentNodes())
-	bytes, err := json.Marshal(payload)
+	payload := c.messageManager.CreateCoreListPayload(c.coreNodeList.CurrentNodes())
+	bytes, err := payload.Marshal()
 	if err != nil {
 		c.logger.Println(err)
 		return

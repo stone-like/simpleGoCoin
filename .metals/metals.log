@@ -2,3 +2,11 @@
 [0m2021.12.20 23:21:40 INFO  time: initialize in 4.73s[0m
 [0m2021.12.20 23:21:42 WARN  Build server is not auto-connectable.[0m
 [0m2021.12.20 23:21:42 WARN  no build tool detected in workspace 'C:\Users\user\Documents\SimpleGoCoin'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+[0m2021.12.21 13:11:08 INFO  Started: Metals version 0.10.9 in workspace 'C:\Users\user\Documents\SimpleGoCoin' for client Visual Studio Code 1.62.2.[0m
+[0m2021.12.21 13:11:14 INFO  time: initialize in 6.04s[0m
+[0m2021.12.21 13:11:20 WARN  Build server is not auto-connectable.[0m
+[0m2021.12.21 13:11:20 WARN  no build tool detected in workspace 'C:\Users\user\Documents\SimpleGoCoin'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+[0m2021.12.25 19:57:06 INFO  Started: Metals version 0.10.9 in workspace 'C:\Users\user\Documents\SimpleGoCoin' for client Visual Studio Code 1.62.2.[0m
+[0m2021.12.25 19:57:09 INFO  time: initialize in 2.84s[0m
+[0m2021.12.25 19:57:13 WARN  Build server is not auto-connectable.[0m
+[0m2021.12.25 19:57:13 WARN  no build tool detected in workspace 'C:\Users\user\Documents\SimpleGoCoin'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
